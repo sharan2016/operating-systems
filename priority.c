@@ -1,66 +1,110 @@
 #include <stdio.h>
+#include <limits.h>
 
-typedef struct {
-    int id;
-    int burst_time;
-    int remaining_time;
-    int weight;
-} Process;
+int i, j, n;
 
-int main() {
-    int n, time = 0, completed = 0;
+/* -------- PRIORITY NON-PREEMPTIVE -------- */
+void priority_non_preemptive() {
+    int bt[20], wt[20], tat[20], pr[20], p[20];
 
     printf("Enter number of processes: ");
     scanf("%d", &n);
 
-    Process p[n];
-    int total_weight = 0;
-
-    // Input
-    for (int i = 0; i < n; i++) {
-        printf("\nProcess %d\n", i + 1);
-        p[i].id = i + 1;
-
-        printf("Enter Burst Time: ");
-        scanf("%d", &p[i].burst_time);
-
-        printf("Enter Weight (Priority): ");
-        scanf("%d", &p[i].weight);
-
-        p[i].remaining_time = p[i].burst_time;
-        total_weight += p[i].weight;
+    for(i = 0; i < n; i++) {
+        printf("Enter BT and Priority for P%d: ", i+1);
+        scanf("%d%d", &bt[i], &pr[i]);
+        p[i] = i+1;
     }
 
-    printf("\n--- Execution Order ---\n");
-
-    // Loop until all processes complete
-    while (completed < n) {
-        for (int i = 0; i < n; i++) {
-            if (p[i].remaining_time > 0) {
-
-                // Time slice proportional to weight
-                int time_slice = (p[i].weight * 10) / total_weight;
-                if (time_slice == 0) time_slice = 1;
-
-                if (p[i].remaining_time <= time_slice) {
-                    time += p[i].remaining_time;
-                    printf("P%d executed from %d to %d (Completed)\n",
-                           p[i].id, time - p[i].remaining_time, time);
-
-                    p[i].remaining_time = 0;
-                    completed++;
-                } else {
-                    printf("P%d executed from %d to %d\n",
-                           p[i].id, time, time + time_slice);
-
-                    p[i].remaining_time -= time_slice;
-                    time += time_slice;
-                }
+    for(i = 0; i < n; i++) {
+        for(j = i+1; j < n; j++) {
+            if(pr[i] > pr[j]) {
+                int temp;
+                temp = pr[i]; pr[i] = pr[j]; pr[j] = temp;
+                temp = bt[i]; bt[i] = bt[j]; bt[j] = temp;
+                temp = p[i];  p[i] = p[j];  p[j] = temp;
             }
         }
     }
 
-    printf("\nAll processes completed at time %d\n", time);
+    wt[0] = 0;
+    for(i = 1; i < n; i++)
+        wt[i] = wt[i-1] + bt[i-1];
+
+    for(i = 0; i < n; i++)
+        tat[i] = wt[i] + bt[i];
+
+    printf("\nProcess\tBT\tPR\tWT\tTAT\n");
+    for(i = 0; i < n; i++)
+        printf("P%d\t%d\t%d\t%d\t%d\n", p[i], bt[i], pr[i], wt[i], tat[i]);
+}
+
+/* -------- PRIORITY PREEMPTIVE -------- */
+void priority_preemptive() {
+    int bt[20], rt[20], pr[20], wt[20], tat[20];
+    int time = 0, completed = 0, highest, idx;
+
+    printf("Enter number of processes: ");
+    scanf("%d", &n);
+
+    for(i = 0; i < n; i++) {
+        printf("Enter BT and Priority for P%d: ", i+1);
+        scanf("%d%d", &bt[i], &pr[i]);
+        rt[i] = bt[i];
+    }
+
+    while(completed != n) {
+        highest = INT_MAX;
+        idx = -1;
+
+        for(i = 0; i < n; i++) {
+            if(rt[i] > 0 && pr[i] < highest) {
+                highest = pr[i];
+                idx = i;
+            }
+        }
+
+        if(idx == -1) {
+            time++;
+            continue;
+        }
+
+        rt[idx]--;
+        time++;
+
+        if(rt[idx] == 0) {
+            completed++;
+            tat[idx] = time;
+            wt[idx] = tat[idx] - bt[idx];
+        }
+    }
+
+    printf("\nProcess\tBT\tPR\tWT\tTAT\n");
+    for(i = 0; i < n; i++)
+        printf("P%d\t%d\t%d\t%d\t%d\n", i+1, bt[i], pr[i], wt[i], tat[i]);
+}
+
+/* -------- MAIN -------- */
+int main() {
+    int choice;
+
+    do {
+        printf("\n--- Priority Scheduling ---\n");
+        printf("1. Non-Preemptive Priority\n");
+        printf("2. Preemptive Priority\n");
+        printf("3. Exit\n");
+
+        printf("Enter choice: ");
+        scanf("%d", &choice);
+
+        switch(choice) {
+            case 1: priority_non_preemptive(); break;
+            case 2: priority_preemptive(); break;
+            case 3: printf("Exit\n"); break;
+            default: printf("Invalid choice\n");
+        }
+
+    } while(choice != 3);
 
     return 0;
 }
